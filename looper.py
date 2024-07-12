@@ -1,0 +1,60 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import os
+
+def scrape_writeup(url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    breadcrumb = soup.find('ul', class_='breadcrumb')
+    event = breadcrumb.find_all('li')[2].find('a').text.strip()
+    challenge_name = breadcrumb.find_all('li')[4].find('a').text.strip()
+
+    writeup_div = soup.find('div', class_='well', id='id_description')
+    writeup = writeup_div.get_text(separator='\n').strip()
+
+    writeup_id = url.split('/')[-1]
+
+    task_link = breadcrumb.find_all('li')[4].find('a')['href']
+    task_id = task_link.split('/')[-1]
+
+    folder_name = 'writeups'
+    os.makedirs(folder_name, exist_ok=True)
+
+    writeup_file_path = os.path.join(folder_name, f"{writeup_id}.txt")
+    with open(writeup_file_path, 'w', encoding='utf-8') as file:
+        file.write(writeup)
+
+    return {
+        'Event': event,
+        'Challenge Name': challenge_name,
+        'Writeup ID': writeup_id,
+        'Task ID': task_id,
+        'Writeup File': writeup_file_path
+    }
+
+base_url = 'https://ctftime.org/writeup/'
+urls = [base_url + str(i).zfill(5) for i in range(39313, 0, -1)]  # Generates URLs from 39313 to 1
+
+all_data = []
+
+for url in urls:
+    try:
+        data = scrape_writeup(url)
+        all_data.append(data)
+        print(f'Successfully scraped {url}')
+    except Exception as e:
+        print(f'Error scraping {url}: {str(e)}')
+
+df = pd.DataFrame(all_data)
+
+output_file = 'ctftime_writeups.xlsx'
+df.to_excel(output_file, index=False)
+
+print(f'All data successfully scraped and saved to {output_file}')
