@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import os
 
+# Function to scrape data from a given URL
 def scrape_writeup(url):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -17,7 +18,7 @@ def scrape_writeup(url):
     challenge_name = breadcrumb.find_all('li')[4].find('a').text.strip()
 
     writeup_div = soup.find('div', class_='well', id='id_description')
-    writeup = writeup_div.get_text(separator='\n').strip()
+    writeup = writeup_div.get_text(separator='\n').strip() if writeup_div else ""
 
     writeup_id = url.split('/')[-1]
 
@@ -40,7 +41,7 @@ def scrape_writeup(url):
     }
 
 base_url = 'https://ctftime.org/writeup/'
-urls = [base_url + str(i).zfill(5) for i in range(39313, 0, -1)]  # Generates URLs from 39313 to 1
+urls = [base_url + str(i).zfill(5) for i in range(1, 10)]  # Generates URLs from 39313 to 1
 
 all_data = []
 
@@ -49,6 +50,11 @@ for url in urls:
         data = scrape_writeup(url)
         all_data.append(data)
         print(f'Successfully scraped {url}')
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            print(f'Error scraping {url}: 404 Not Found')
+        else:
+            print(f'Error scraping {url}: {str(e)}')
     except Exception as e:
         print(f'Error scraping {url}: {str(e)}')
 
